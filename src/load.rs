@@ -17,6 +17,10 @@ pub enum ModParamValue {
     Bool(bool),
     /// Integer value, signed 64-bits.
     Int(i64),
+    /// String value.
+    Str(String),
+    /// Array of values.
+    Array(Vec<ModParamValue>),
 }
 
 impl ToString for ModParamValue {
@@ -24,6 +28,17 @@ impl ToString for ModParamValue {
         match *self {
             ModParamValue::Bool(b) => b.to_string(),
             ModParamValue::Int(n) => n.to_string(),
+            ModParamValue::Str(ref s) => s.clone(),
+            ModParamValue::Array(ref a) => {
+                let mut values = String::new();
+                for v in a {
+                    if !values.is_empty() {
+                        values += ",";
+                    }
+                    values += &v.to_string();
+                }
+                values
+            }
         }
     }
 }
@@ -133,6 +148,21 @@ mod tests {
             p3.insert("bar".to_owned(), ModParamValue::Int(42));
             p3.insert("foo".to_owned(), ModParamValue::Bool(true));
             assert_eq!(params_to_string(&p3), "bar=42 foo=true".to_owned());
+        }
+        {
+            let mut p4 = ModParams::new();
+            p4.insert("bar".to_owned(), ModParamValue::Int(42));
+            p4.insert("foo".to_owned(), ModParamValue::Str("quz".to_string()));
+            assert_eq!(params_to_string(&p4), "bar=42 foo=quz".to_owned());
+        }
+        {
+            let mut p5 = ModParams::new();
+            p5.insert("bar".to_owned(), ModParamValue::Int(42));
+            p5.insert(
+                "foo".to_owned(),
+                ModParamValue::Array(vec![ModParamValue::Int(42), ModParamValue::Int(99)]),
+            );
+            assert_eq!(params_to_string(&p5), "bar=42 foo=42,99".to_owned());
         }
     }
 }
