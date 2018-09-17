@@ -29,6 +29,8 @@
 extern crate errno;
 #[macro_use]
 extern crate error_chain;
+#[cfg(feature = "async")]
+extern crate futures;
 extern crate libc;
 
 pub mod errors;

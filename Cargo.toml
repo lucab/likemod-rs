@@ -13,12 +13,23 @@ exclude = [
 ".travis.yml",
 ]
 
+[[example]]
+name = "async-unload"
+required-features = ["async"]
+
 [dependencies]
 # Private dependencies.
 libc = "0.2"
 # Public dependencies, exposed through library API.
 errno = "0.2"
 error-chain = {version = "0.12", default-features = false}
+futures = {version = "0.1", optional = true}
+
+[dev-dependencies]
+tokio = "0.1"
+
+[features]
+async = ["futures"]
 
 [package.metadata.release]
 sign-commit = true

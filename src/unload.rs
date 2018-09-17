@@ -1,10 +1,12 @@
 use super::errors;
 use super::nr;
 use errno;
+#[cfg(feature = "async")]
+use futures::prelude::*;
 use libc;
 
 /// Module unloader.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub struct ModUnloader {
     force: bool,
 }
@@ -50,10 +52,59 @@ impl ModUnloader {
             0 => Ok(()),
             _ => Err(
                 errors::Error::from_kind(errors::ErrorKind::Sys(errno::errno()))
-                    .chain_err(|| "delete_module error"),
+                    .chain_err(|| "blocking delete_module error"),
             ),
         }
     }
 
-    // TODO(lucab): implement async_unload with futures-0.3
+    #[cfg(feature = "async")]
+    /// Unload module by name, asynchronously.
+    pub fn async_unload<S: AsRef<str>>(
+        &self,
+        modname: S,
+    ) -> Box<Future<Item = (), Error = errors::Error>> {
+        let flags = {
+            let ff = if self.force { libc::O_TRUNC } else { 0 };
+            ff | libc::O_NONBLOCK
+        };
+        let unloader = UnloadTask {
+            flags,
+            modname: modname.as_ref().to_string(),
+        };
+        Box::new(unloader)
+    }
+}
+
+#[cfg(feature = "async")]
+pub(crate) struct UnloadTask {
+    flags: libc::c_int,
+    modname: String,
+}
+
+#[cfg(feature = "async")]
+impl Future for UnloadTask {
+    type Item = ();
+    type Error = errors::Error;
+    fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
+        use futures;
+        // UNSAFE(lucab): required syscall, all parameters are immutable.
+        let r = unsafe { libc::syscall(nr::DELETE_MODULE, self.modname.as_ptr(), self.flags) };
+
+        // Successfully unloaded.
+        if r == 0 {
+            return Ok(Async::Ready(()));
+        }
+
+        // Module is busy, keep polling later.
+        let num = errno::errno();
+        if num.0 == libc::EWOULDBLOCK {
+            // TODO(lucab): rate-limit this.
+            futures::task::current().notify();
+            return Ok(Async::NotReady);
+        }
+
+        // Any other generic error, bubble this up.
+        Err(errors::Error::from_kind(errors::ErrorKind::Sys(num))
+            .chain_err(|| "async delete_module error"))
+    }
 }
