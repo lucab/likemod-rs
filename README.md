@@ -30,10 +30,12 @@ fn load_modfile(fpath: &std::path::Path) -> errors::Result<()> {
 }
 ```
 
+Some more examples are available under [examples](examples).
+
 ## Features
 
 This crate supports the following optional features:
- * `async`: this provides an `async_unload` method, using futures.
+ * `async`: this provides an `unload_async` method, using futures.
 
 ## License
 

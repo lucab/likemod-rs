@@ -8,6 +8,8 @@ use libc;
 use tokio::timer;
 
 /// Module unloader.
+///
+/// Asynchronous methods can be enabled via the optional `async` feature.
 #[derive(Clone, Debug)]
 pub struct ModUnloader {
     force: bool,
@@ -34,14 +36,16 @@ impl ModUnloader {
         self
     }
 
-    /// Unload module by name, optionally blocking until completion.
+    /// Unload module by name, synchronously.
     ///
-    /// This is a synchronous method that can optionally block (putting
+    /// If `blocking` is enabled, this can block at syscall level (putting
     /// the process in D state) while waiting for module reference count
-    /// to be 0 for clean unloading (unless forced, or when `blocking`
-    /// parameter is `false`).
-    /// It returns once unload is complete or an error happened.
-    pub fn blocking_unload<S: AsRef<str>>(&self, modname: S, blocking: bool) -> errors::Result<()> {
+    /// to be 0 for clean unloading (unless forced).
+    ///
+    /// It is usually recommended not to set `blocking`, as the process
+    /// cannot be killed while blocked on syscall. Consider using
+    /// `unload_async` instead.
+    pub fn unload_sync<S: AsRef<str>>(&self, modname: S, blocking: bool) -> errors::Result<()> {
         let flags = match (self.force, blocking) {
             (false, false) => 0,
             (true, false) => libc::O_TRUNC,
@@ -59,9 +63,14 @@ impl ModUnloader {
         }
     }
 
-    #[cfg(feature = "async")]
     /// Unload module by name, asynchronously.
-    pub fn async_unload<S: AsRef<str>>(
+    ///
+    /// If the module is currently in use, this will continuously retry
+    /// unloading at fixed intervals after pausing for the specified
+    /// amount of milliseconds.
+    /// This requires enabling the `async` optional feature.
+    #[cfg(feature = "async")]
+    pub fn unload_async<S: AsRef<str>>(
         &self,
         modname: S,
         pause_millis: ::std::num::NonZeroU64,
