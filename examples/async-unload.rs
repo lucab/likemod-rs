@@ -9,7 +9,7 @@
 extern crate likemod;
 extern crate tokio;
 
-use std::{process, time};
+use std::{num, process, time};
 use tokio::runtime::current_thread;
 use tokio::timer::timeout;
 
@@ -17,8 +17,10 @@ fn main() {
     // Get from cmdline the name of the module to unload.
     let modname = std::env::args().nth(1).expect("missing module name");
 
-    // Assemble a future to unload the module, timing out after 5 seconds.
-    let modunload = likemod::ModUnloader::new().async_unload(&modname);
+    // Assemble a future to unload the module; if busy,
+    // retry every 500ms and time out after 5 seconds.
+    let pause_ms = num::NonZeroU64::new(500).unwrap();
+    let modunload = likemod::ModUnloader::new().async_unload(&modname, pause_ms);
     let tout = time::Duration::from_secs(15);
     let fut = timeout::Timeout::new(modunload, tout);
 

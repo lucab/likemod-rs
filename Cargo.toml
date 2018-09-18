@@ -24,12 +24,10 @@ libc = "0.2"
 errno = "0.2"
 error-chain = {version = "0.12", default-features = false}
 futures = {version = "0.1", optional = true}
-
-[dev-dependencies]
-tokio = "0.1"
+tokio = {version = "0.1", optional = true}
 
 [features]
-async = ["futures"]
+async = ["futures", "tokio"]
 
 [package.metadata.release]
 sign-commit = true
