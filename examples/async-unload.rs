@@ -20,7 +20,7 @@ fn main() {
     // Assemble a future to unload the module; if busy,
     // retry every 500ms and time out after 5 seconds.
     let pause_ms = num::NonZeroU64::new(500).unwrap();
-    let modunload = likemod::ModUnloader::new().async_unload(&modname, pause_ms);
+    let modunload = likemod::ModUnloader::new().unload_async(&modname, pause_ms);
     let tout = time::Duration::from_secs(15);
     let fut = timeout::Timeout::new(modunload, tout);
 

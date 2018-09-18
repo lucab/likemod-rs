@@ -37,3 +37,6 @@ disable-push = true
 pre-release-commit-message = "cargo: likemod release {{version}}"
 pro-release-commit-message = "cargo: version bump to {{version}}"
 tag-message = "likemod {{version}}"
+
+[package.metadata.docs.rs]
+features = ["async"]
