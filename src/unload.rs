@@ -4,6 +4,8 @@ use errno;
 #[cfg(feature = "async")]
 use futures::prelude::*;
 use libc;
+#[cfg(feature = "async")]
+use tokio::timer;
 
 /// Module unloader.
 #[derive(Clone, Debug)]
@@ -62,13 +64,16 @@ impl ModUnloader {
     pub fn async_unload<S: AsRef<str>>(
         &self,
         modname: S,
+        pause_millis: ::std::num::NonZeroU64,
     ) -> Box<Future<Item = (), Error = errors::Error>> {
         let flags = {
             let ff = if self.force { libc::O_TRUNC } else { 0 };
             ff | libc::O_NONBLOCK
         };
+        let pause = ::std::time::Duration::from_millis(pause_millis.get());
         let unloader = UnloadTask {
             flags,
+            interval: timer::Interval::new_interval(pause),
             modname: modname.as_ref().to_string(),
         };
         Box::new(unloader)
@@ -78,6 +83,7 @@ impl ModUnloader {
 #[cfg(feature = "async")]
 pub(crate) struct UnloadTask {
     flags: libc::c_int,
+    interval: timer::Interval,
     modname: String,
 }
 
@@ -86,7 +92,19 @@ impl Future for UnloadTask {
     type Item = ();
     type Error = errors::Error;
     fn poll(&mut self) -> Poll<Self::Item, Self::Error> {
-        use futures;
+        use futures::task;
+
+        // Rate-limit to a sane interval, as `delete_module(2)`
+        // has no feedback mechanism.
+        match self.interval.poll() {
+            Ok(Async::Ready(_)) => {}
+            Ok(Async::NotReady) => {
+                task::current().notify();
+                return Ok(Async::NotReady);
+            }
+            Err(e) => bail!("failed rate-limiting interval: {}", e),
+        };
+
         // UNSAFE(lucab): required syscall, all parameters are immutable.
         let r = unsafe { libc::syscall(nr::DELETE_MODULE, self.modname.as_ptr(), self.flags) };
 
@@ -98,8 +116,7 @@ impl Future for UnloadTask {
         // Module is busy, keep polling later.
         let num = errno::errno();
         if num.0 == libc::EWOULDBLOCK {
-            // TODO(lucab): rate-limit this.
-            futures::task::current().notify();
+            task::current().notify();
             return Ok(Async::NotReady);
         }
 

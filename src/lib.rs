@@ -32,6 +32,8 @@ extern crate error_chain;
 #[cfg(feature = "async")]
 extern crate futures;
 extern crate libc;
+#[cfg(feature = "async")]
+extern crate tokio;
 
 pub mod errors;
 mod load;
