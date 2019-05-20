@@ -3,7 +3,7 @@
 use errno;
 use std::{ffi, io};
 
-error_chain!{
+error_chain! {
     errors {
         /// Syscall error, as `errno(3)`.
         Sys(errno: errno::Errno) {
