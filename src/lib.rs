@@ -40,5 +40,5 @@ mod load;
 mod nr;
 mod unload;
 
-pub use load::{ModLoader, ModParams, ModParamValue};
+pub use load::{ModLoader, ModParamValue, ModParams};
 pub use unload::ModUnloader;
