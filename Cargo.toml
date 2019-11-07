@@ -23,7 +23,7 @@ libc = "0.2"
 # Public dependencies, exposed through library API.
 errno = "0.2"
 error-chain = {version = "0.12", default-features = false}
-futures = {version = "0.1", optional = true}
+futures = {version = "0.3", optional = true}
 tokio = {version = "0.1", optional = true}
 
 [features]
