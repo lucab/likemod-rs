@@ -16,7 +16,7 @@ pub const FINIT_MODULE: i64 = 313;
 pub const DELETE_MODULE: i64 = 176;
 
 #[cfg(target_arch = "aarch64")]
-pub const FINIT_MODULE: i64 = 379;
+pub const FINIT_MODULE: i64 = 273;
 #[cfg(target_arch = "aarch64")]
 pub const DELETE_MODULE: i64 = 106;
 
